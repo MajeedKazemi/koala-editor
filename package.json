@@ -1,7 +1,7 @@
 {
-    "name": "nova-editor",
+    "name": "pybox-editor",
     "version": "1.0.0",
-    "description": "A new text-based environment that helps beginners transition into conventional text-based programming environments.",
+    "description": "A simple text-based editor that includes a toolbox for exploration and explanation of python commands.",
     "keywords": [
         "programming",
         "cs-education",
@@ -9,14 +9,13 @@
         "beginner",
         "editor"
     ],
-    "author": "Majeed Kazemitaabar, Viktar Chyhir",
+    "author": "Majeed Kazemitaabar",
     "license": "GPL-3.0",
     "scripts": {
         "start": "webpack serve --config webpack.config.js --open",
         "build": "node node_modules/webpack/bin/webpack.js --progress"
     },
     "dependencies": {
-        "fuse.js": "^6.4.6",
         "monaco-editor": "^0.25.2"
     },
     "devDependencies": {

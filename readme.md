@@ -1,13 +1,2 @@
-# Nova Editor
-A new text-based environment that helps beginners transition into conventional text-based programming environments.
-
-Features:
-- avoids syntax errors
-- enables structured text-based editing
-- provides learning moments on invalid attempts
-- provides hints and visual descriptions
-
-Authoring code with Nova:
-- Cursor-aware Toolbox
-- Suggestion Menus and Autocomplete
-- Draft Mode Editing
+# PyBox Editor
+A simple text-based editor that includes a toolbox for exploration and explanation of fundamental coding concepts in python. The toolbox allows users to hover over things and simply learn what they can do in order to accomplish their tasks. This will potentially help with the blocks-to-text transition.
