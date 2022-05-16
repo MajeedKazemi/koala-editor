@@ -1,5 +1,8 @@
 import "./css/index.css";
 import { Module } from "./editor/module";
+import * as helperModule from './syntax_check/helper';
+
+
 
 // @ts-ignore
 self.MonacoEnvironment = {
@@ -28,4 +31,17 @@ const nova = new Module("editor");
 const runBtnToOutputWindow = new Map<string, string>();
 runBtnToOutputWindow.set("runCodeBtn", "outputDiv");
 
+var editor = nova.editor.monaco;
+var model = editor.getModel();
+model.onDidChangeContent((event) => {
+
+    var this_line = model.getLineContent(editor.getPosition().lineNumber)
+
+    var out = helperModule.checkMissingColon(this_line);
+
+    console.log(out);
+
+});
+
 export { nova, runBtnToOutputWindow };
+
