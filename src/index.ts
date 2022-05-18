@@ -26,6 +26,7 @@ self.MonacoEnvironment = {
     },
 };
 
+// Global Variables
 const nova = new Module("editor");
 const runBtnToOutputWindow = new Map<string, string>();
 runBtnToOutputWindow.set("runCodeBtn", "outputDiv");
@@ -33,24 +34,30 @@ runBtnToOutputWindow.set("runCodeBtn", "outputDiv");
 var nova_editor = nova.editor.monaco;
 var model = nova_editor.getModel();
 
-var err_log = {};
-var id = 0;
+var id = 0; // an ID uniquely assigned to each syntax error
+var err_log = {}; // an Object that records syntax error(s) in each line
+// err_log = {lineNumber0: [id0, id1, id2, id3], lineNumber1: [id4, id5, id6, id7]}
 
 function updateLineNumber(err_log, event) {
-
     /*
-    Start new line: steps==0 && event.changes[0].text.includes(event.eol)
-    Remove new line: steps==-1
-
+    Update the key of <err_log> whenever line(s) are added/deleted
     */
 
+    // the number of modified lines
+    // i.e. steps == -1 when 1 line is removed 
     var steps = event.changes[0].range.startLineNumber - event.changes[0].range.endLineNumber;
 
     if (steps == 0) {
+        // unique behavior: steps==0 when exactly 1 line is added
+        // if this line is added at the very end, no need to updateLineNumber
         if (event.changes[0].text.includes(event.eol) && event.changes[0].range.startLineNumber + 1 != model.getLineCount()) steps = 1;
         else return err_log;
     }
+
+    // create new log that will be returned
     var new_err_log = {}
+
+    // loop thru old err_log
     for (var line in err_log) {
         var n_line = Number(line)
         if (n_line < event.changes[0].range.startLineNumber) {
@@ -66,7 +73,7 @@ function updateLineNumber(err_log, event) {
             console.log(monaco.editor.getModelMarkers({}));
         }
         else {
-
+            // 
             if (err_log[n_line][0]) monaco.editor.setModelMarkers(model, err_log[n_line][0].toString(), []);
             if (err_log[n_line][1]) monaco.editor.setModelMarkers(model, err_log[n_line][1].toString(), []);
             if (err_log[n_line][2]) monaco.editor.setModelMarkers(model, err_log[n_line][2].toString(), []);
@@ -113,9 +120,9 @@ function generateErrMsg(errType: number, lineNumber: number, startIndex: number)
         case 2:
             monaco.editor.setModelMarkers(model, temp_id, [{
                 startLineNumber: lineNumber,
-                startColumn: startIndex,
+                startColumn: startIndex + 1,
                 endLineNumber: lineNumber,
-                endColumn: startIndex + 1,
+                endColumn: startIndex + 2,
                 message: "This parenthesis is left unmatched!",
                 severity: monaco.MarkerSeverity.Warning
             }])
@@ -247,4 +254,3 @@ model.onDidChangeContent((event) => {
 });
 
 export { nova, runBtnToOutputWindow };
-
