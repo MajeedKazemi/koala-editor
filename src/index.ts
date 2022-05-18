@@ -37,9 +37,17 @@ var err_log = {};
 var id = 0;
 
 function updateLineNumber(err_log, event) {
+
+    /*
+    Start new line: steps==0 && event.changes[0].text.includes(event.eol)
+    Remove new line: steps==-1
+
+    */
+
     var steps = event.changes[0].range.startLineNumber - event.changes[0].range.endLineNumber;
+
     if (steps == 0) {
-        if (event.changes[0].text == event.eol && event.changes[0].range.startLineNumber + 1 != model.getLineCount()) steps = 1;
+        if (event.changes[0].text.includes(event.eol) && event.changes[0].range.startLineNumber + 1 != model.getLineCount()) steps = 1;
         else return err_log;
     }
     var new_err_log = {}
@@ -50,6 +58,12 @@ function updateLineNumber(err_log, event) {
         }
         else if (n_line >= event.changes[0].range.endLineNumber) {
             new_err_log[n_line + steps] = err_log[n_line]
+            console.log(steps)
+            if (err_log[n_line][0]) updateErrMsg(0, n_line, n_line + steps)
+            if (err_log[n_line][1]) updateErrMsg(1, n_line, n_line + steps)
+            if (err_log[n_line][2]) updateErrMsg(2, n_line, n_line + steps)
+            if (err_log[n_line][3]) updateErrMsg(3, n_line, n_line + steps)
+            console.log(monaco.editor.getModelMarkers({}));
         }
         else {
 
@@ -63,10 +77,21 @@ function updateLineNumber(err_log, event) {
 }
 
 
-function generateErrMsg(err_log: Object, errType: number, errID: number, lineNumber: number, startIndex: number) {
+function generateErrMsg(errType: number, lineNumber: number, startIndex: number) {
+
+    if (err_log[lineNumber] == undefined) err_log[lineNumber] = [];
+
+    var temp_id: string;
+    if (err_log[lineNumber][errType] == undefined) {
+        temp_id = id.toString();
+        err_log[lineNumber][errType] = id;
+        id++;
+    }
+    else temp_id = err_log[lineNumber][errType].toString();
+
     switch (errType) {
         case 0:
-            monaco.editor.setModelMarkers(model, errID.toString(), [{
+            monaco.editor.setModelMarkers(model, temp_id, [{
                 startLineNumber: lineNumber,
                 startColumn: startIndex,
                 endLineNumber: lineNumber,
@@ -76,7 +101,7 @@ function generateErrMsg(err_log: Object, errType: number, errID: number, lineNum
             }])
             break;
         case 1:
-            monaco.editor.setModelMarkers(model, errID.toString(), [{
+            monaco.editor.setModelMarkers(model, temp_id, [{
                 startLineNumber: lineNumber,
                 startColumn: startIndex + 1,
                 endLineNumber: lineNumber,
@@ -86,7 +111,7 @@ function generateErrMsg(err_log: Object, errType: number, errID: number, lineNum
             }])
             break;
         case 2:
-            monaco.editor.setModelMarkers(model, errID.toString(), [{
+            monaco.editor.setModelMarkers(model, temp_id, [{
                 startLineNumber: lineNumber,
                 startColumn: startIndex,
                 endLineNumber: lineNumber,
@@ -96,7 +121,7 @@ function generateErrMsg(err_log: Object, errType: number, errID: number, lineNum
             }])
             break;
         case 3:
-            monaco.editor.setModelMarkers(model, errID.toString(), [{
+            monaco.editor.setModelMarkers(model, temp_id, [{
                 startLineNumber: lineNumber,
                 startColumn: startIndex + 1,
                 endLineNumber: lineNumber,
@@ -106,9 +131,57 @@ function generateErrMsg(err_log: Object, errType: number, errID: number, lineNum
             }])
             break;
     }
-    if (err_log[lineNumber] == undefined) err_log[lineNumber] = [];
-    err_log[lineNumber][errType] = errID;
-    return err_log
+
+}
+
+function updateErrMsg(errType: number, oldLineNumber: number, newlineNumber: number) {
+
+    var oldMarker = monaco.editor.getModelMarkers({ 'owner': err_log[oldLineNumber][errType].toString() })[0]
+
+    switch (errType) {
+        case 0:
+            monaco.editor.setModelMarkers(model, err_log[oldLineNumber][errType].toString(), [{
+                startLineNumber: newlineNumber,
+                startColumn: oldMarker.startColumn,
+                endLineNumber: newlineNumber,
+                endColumn: oldMarker.startColumn + 1,
+                message: "You are missing a colon (:) in this compound statement!",
+                severity: monaco.MarkerSeverity.Warning
+            }])
+            break;
+        case 1:
+            monaco.editor.setModelMarkers(model, err_log[oldLineNumber][errType].toString(), [{
+                startLineNumber: newlineNumber,
+                startColumn: oldMarker.startColumn,
+                endLineNumber: newlineNumber,
+                endColumn: oldMarker.startColumn + 1,
+                message: "There should not be a colon (:) here!",
+                severity: monaco.MarkerSeverity.Warning
+            }])
+            break;
+        case 2:
+            monaco.editor.setModelMarkers(model, err_log[oldLineNumber][errType].toString(), [{
+                startLineNumber: newlineNumber,
+                startColumn: oldMarker.startColumn,
+                endLineNumber: newlineNumber,
+                endColumn: oldMarker.startColumn + 1,
+                message: "This parenthesis is left unmatched!",
+                severity: monaco.MarkerSeverity.Warning
+            }])
+            break;
+        case 3:
+            monaco.editor.setModelMarkers(model, err_log[oldLineNumber][errType].toString(), [{
+                startLineNumber: newlineNumber,
+                startColumn: oldMarker.startColumn,
+                endLineNumber: newlineNumber,
+                endColumn: 999,
+                message: "Failed to import!",
+                severity: monaco.MarkerSeverity.Warning
+            }])
+            break;
+    }
+
+
 }
 
 
@@ -152,88 +225,23 @@ model.onDidChangeContent((event) => {
         }
     }
 
-    // boolean: true if line is free of ANY error
-    var noError = (err_missing_colon + err_misplaced_colon + err_parenthesis + err_import) == -4;
+    // return if line is free of errors
+    if ((err_missing_colon + err_misplaced_colon + err_parenthesis + err_import) == -4) return;
 
-    if (!noError) {
-        if (err_log[this_line_number] == undefined) err_log[this_line_number] = [];
+    if (err_missing_colon != -1) {
+        generateErrMsg(0, this_line_number, err_missing_colon)
+    }
 
-        if (err_missing_colon != -1) {
-            var temp_id;
-            if (err_log[this_line_number][0] == undefined) {
-                temp_id = id.toString();
-                err_log[this_line_number][0] = id;
-                id++;
-            }
-            else temp_id = err_log[this_line_number][0].toString();
+    if (err_misplaced_colon != -1) {
+        generateErrMsg(1, this_line_number, err_misplaced_colon)
+    }
 
-            monaco.editor.setModelMarkers(model, temp_id, [{
-                startLineNumber: this_line_number,
-                startColumn: err_missing_colon,
-                endLineNumber: this_line_number,
-                endColumn: err_missing_colon + 1,
-                message: "You are missing a colon (:) in this compound statement!",
-                severity: monaco.MarkerSeverity.Warning
-            }])
-        }
+    if (err_parenthesis != -1) {
+        generateErrMsg(2, this_line_number, err_parenthesis)
+    }
 
-        if (err_misplaced_colon != -1) {
-            var temp_id;
-            if (err_log[this_line_number][1] == undefined) {
-                temp_id = id.toString();
-                err_log[this_line_number][1] = id;
-                id++;
-            }
-            else temp_id = err_log[this_line_number][1].toString();
-
-            monaco.editor.setModelMarkers(model, temp_id, [{
-                startLineNumber: this_line_number,
-                startColumn: err_misplaced_colon + 1,
-                endLineNumber: this_line_number,
-                endColumn: err_misplaced_colon + 2,
-                message: "There should not be a colon (:) here!",
-                severity: monaco.MarkerSeverity.Warning
-            }])
-        }
-
-        if (err_parenthesis != -1) {
-            var temp_id;
-            if (err_log[this_line_number][2] == undefined) {
-                temp_id = id.toString();
-                err_log[this_line_number][2] = id;
-                id++;
-            }
-            else temp_id = err_log[this_line_number][2].toString();
-            monaco.editor.setModelMarkers(model, temp_id, [{
-                startLineNumber: this_line_number,
-                startColumn: err_parenthesis,
-                endLineNumber: this_line_number,
-                endColumn: err_parenthesis + 1,
-                message: "This parenthesis is left unmatched!",
-                severity: monaco.MarkerSeverity.Warning
-            }])
-
-        }
-
-        if (err_import != -1) {
-            var temp_id;
-            if (err_log[this_line_number][3] == undefined) {
-                temp_id = id.toString();
-                err_log[this_line_number][3] = id;
-                id++;
-            }
-            else temp_id = err_log[this_line_number][3].toString();
-            monaco.editor.setModelMarkers(model, temp_id, [{
-                startLineNumber: this_line_number,
-                startColumn: err_import + 1,
-                endLineNumber: this_line_number,
-                endColumn: 999,
-                message: "Import",
-                severity: monaco.MarkerSeverity.Warning
-            }])
-
-        }
-
+    if (err_import != -1) {
+        generateErrMsg(3, this_line_number, err_import)
     }
 
 });
