@@ -63,16 +63,52 @@ function updateLineNumber(err_log, event) {
 }
 
 
-function generateErrMsg(errType: number, errID: number,) {
-    //asdf
-}
-
-function updateErrMsg(errType: number, errID: number, oldLineNumber: number, newLineNumber: number,) {
-    //asdf
-}
-
-function deleteErrMsg(errType: number) {
-    //asdf
+function generateErrMsg(err_log: Object, errType: number, errID: number, lineNumber: number, startIndex: number) {
+    switch (errType) {
+        case 0:
+            monaco.editor.setModelMarkers(model, errID.toString(), [{
+                startLineNumber: lineNumber,
+                startColumn: startIndex,
+                endLineNumber: lineNumber,
+                endColumn: startIndex + 1,
+                message: "You are missing a colon (:) in this compound statement!",
+                severity: monaco.MarkerSeverity.Warning
+            }])
+            break;
+        case 1:
+            monaco.editor.setModelMarkers(model, errID.toString(), [{
+                startLineNumber: lineNumber,
+                startColumn: startIndex + 1,
+                endLineNumber: lineNumber,
+                endColumn: startIndex + 2,
+                message: "There should not be a colon (:) here!",
+                severity: monaco.MarkerSeverity.Warning
+            }])
+            break;
+        case 2:
+            monaco.editor.setModelMarkers(model, errID.toString(), [{
+                startLineNumber: lineNumber,
+                startColumn: startIndex,
+                endLineNumber: lineNumber,
+                endColumn: startIndex + 1,
+                message: "This parenthesis is left unmatched!",
+                severity: monaco.MarkerSeverity.Warning
+            }])
+            break;
+        case 3:
+            monaco.editor.setModelMarkers(model, errID.toString(), [{
+                startLineNumber: lineNumber,
+                startColumn: startIndex + 1,
+                endLineNumber: lineNumber,
+                endColumn: 999,
+                message: "Failed to import!",
+                severity: monaco.MarkerSeverity.Warning
+            }])
+            break;
+    }
+    if (err_log[lineNumber] == undefined) err_log[lineNumber] = [];
+    err_log[lineNumber][errType] = errID;
+    return err_log
 }
 
 
